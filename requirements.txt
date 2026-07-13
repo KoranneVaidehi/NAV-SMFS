@@ -5,13 +5,13 @@ Pillow==10.1.0
 numpy==1.24.3
 tensorflow==2.13.0
 
-
+torch>=2.0
+torchvision
+scikit-learn
+matplotlib
+seaborn
+tqdm
 
 #pip install -r requirements.txt
 #activate the venv :   .\.venv\Scripts\Activate
 #run python manage.py runserver
-
-# git status
-# git add .
-# git commit -m "Updated UI and fixed login issues"
-# git push origin main
