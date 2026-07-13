@@ -9,8 +9,10 @@ from torchvision import transforms
 from PIL import Image
 import os
 from pathlib import Path
-from config import Config
-from utils import setup_logger
+
+# Use relative import
+from .config import Config
+from .utils import setup_logger
 
 class FaceDataset(Dataset):
     """Face dataset for real/fake classification."""

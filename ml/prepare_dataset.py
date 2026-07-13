@@ -91,37 +91,50 @@ class DatasetPreparer:
         self.logger.info("=" * 60)
         self.logger.info("Cleaning dataset...")
         self.logger.info("=" * 60)
-        
-        # Remove corrupted images
+
+        # Step 1: Remove corrupted images
         valid_images = []
         corrupted_count = 0
-        
+
         for img_path in tqdm(image_paths, desc="Checking for corrupted images"):
             if not is_image_corrupted(img_path):
                 valid_images.append(img_path)
             else:
                 corrupted_count += 1
-                self.logger.debug(f"Corrupted image: {img_path}")
-        
+
         self.logger.info(f"Removed {corrupted_count} corrupted images")
-        
-        # Find and remove duplicates
-        self.logger.info("Checking for duplicate images...")
-        duplicates = find_duplicates(valid_images)
-        duplicate_count = len(duplicates)
-        
-        # Remove duplicates (keep the first occurrence)
-        duplicate_paths = {dup[0] for dup in duplicates}
-        cleaned_images = [img for img in valid_images if img not in duplicate_paths]
-        
+
+        # Step 2: Remove duplicates using file hash
+        import hashlib
+
+        unique_images = []
+        seen_hashes = set()
+        duplicate_count = 0
+
+        for img_path in tqdm(valid_images, desc="Removing duplicates"):
+            try:
+                with open(img_path, "rb") as f:
+                    file_hash = hashlib.md5(f.read()).hexdigest()
+
+                if file_hash not in seen_hashes:
+                    seen_hashes.add(file_hash)
+                    unique_images.append(img_path)
+                else:
+                    duplicate_count += 1
+
+            except Exception as e:
+                self.logger.warning(f"Could not process {img_path}: {e}")
+
         self.logger.info(f"Removed {duplicate_count} duplicate images")
-        self.logger.info(f"Total valid images after cleaning: {len(cleaned_images)}")
+        self.logger.info(f"Total valid images after cleaning: {len(unique_images)}")
+
+        if len(unique_images) < 10:
+            raise ValueError(
+                f"Too few images after cleaning: {len(unique_images)}"
+            )
+
+        return unique_images
         
-        if len(cleaned_images) < 10:
-            raise ValueError(f"Too few images after cleaning: {len(cleaned_images)}")
-        
-        return cleaned_images
-    
     def create_directory_structure(self):
         """Create the train/val/test directory structure."""
         self.logger.info("Creating directory structure...")

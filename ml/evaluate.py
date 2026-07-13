@@ -26,7 +26,7 @@ class Evaluator:
         self.logger = setup_logger('evaluator', Config.LOGS_DIR / 'evaluation.log')
         self.device = Config.DEVICE
         self.logger.info("=" * 60)
-        self.logger.info("🔍 EVALUATION STARTED")
+        self.logger.info("EVALUATION STARTED")
         self.logger.info(f"Device: {self.device}")
         self.logger.info("=" * 60)
         
@@ -55,7 +55,6 @@ class Evaluator:
         
         # Load training history if available
         if Config.TRAINING_HISTORY_PATH.exists():
-            import json
             with open(Config.TRAINING_HISTORY_PATH, 'r') as f:
                 self.history = json.load(f)
     
@@ -71,16 +70,23 @@ class Evaluator:
         with torch.no_grad():
             for images, labels in tqdm(data_loader, desc=f"Evaluating {dataset_name}"):
                 images = images.to(self.device)
-                labels = labels.numpy()
+                labels = labels.cpu().numpy()
                 
                 # Forward pass
                 outputs = self.model(images)
-                probs = torch.sigmoid(outputs.squeeze()).cpu().numpy()
-                preds = (probs > 0.5).astype(int)
                 
-                all_preds.extend(preds)
+                # Get probabilities using softmax
+                probs = torch.softmax(outputs, dim=1)
+                
+                # Get predictions (class with highest probability)
+                preds = torch.argmax(outputs, dim=1)
+                
+                # Store predictions
+                all_preds.extend(preds.cpu().numpy())
                 all_labels.extend(labels)
-                all_probs.extend(probs)
+                
+                # Store ONLY the probability of the Fake class (class 1)
+                all_probs.extend(probs[:, 1].cpu().numpy())
         
         # Convert to numpy arrays
         all_preds = np.array(all_preds)
@@ -106,7 +112,17 @@ class Evaluator:
         return metrics, all_labels, all_preds, all_probs
     
     def compute_metrics(self, y_true, y_pred, y_prob):
-        """Compute all evaluation metrics."""
+        """
+        Compute all evaluation metrics.
+        
+        Args:
+            y_true: Ground truth labels (N,)
+            y_pred: Predicted labels (N,)
+            y_prob: Probability of class 1 (Fake) (N,)
+        
+        Returns:
+            dict: Dictionary containing all metrics
+        """
         metrics = {
             'accuracy': accuracy_score(y_true, y_pred),
             'precision': precision_score(y_true, y_pred, zero_division=0),
@@ -250,7 +266,6 @@ class Evaluator:
         
         # Load and plot training history
         if Config.TRAINING_HISTORY_PATH.exists():
-            import json
             with open(Config.TRAINING_HISTORY_PATH, 'r') as f:
                 history = json.load(f)
             self.plot_training_curves(history)
@@ -269,7 +284,7 @@ class Evaluator:
     def print_summary(self, metrics):
         """Print evaluation summary."""
         self.logger.info("\n" + "=" * 60)
-        self.logger.info("📊 EVALUATION SUMMARY")
+        self.logger.info("EVALUATION SUMMARY")
         self.logger.info("=" * 60)
         self.logger.info(f"  Accuracy:  {metrics['accuracy']:.4f} ({metrics['accuracy']*100:.2f}%)")
         self.logger.info(f"  Precision: {metrics['precision']:.4f}")

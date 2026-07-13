@@ -6,8 +6,10 @@ Uses EfficientNet-B0 with custom classification head for binary classification.
 import torch
 import torch.nn as nn
 import torchvision.models as models
-from config import Config
-from utils import setup_logger
+
+# Use relative import
+from .config import Config
+from .utils import setup_logger
 
 class EfficientNetClassifier(nn.Module):
     """EfficientNet-based classifier for real/fake face detection."""

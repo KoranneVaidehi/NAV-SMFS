@@ -78,7 +78,7 @@ class Trainer:
             verbose=True
         )
         
-        self.criterion = nn.BCEWithLogitsLoss()
+        self.criterion = nn.CrossEntropyLoss()
         self.logger.info("Optimizer and scheduler initialized")
     
     def train_epoch(self, epoch):
@@ -92,11 +92,11 @@ class Trainer:
         
         for batch_idx, (images, labels) in enumerate(pbar):
             images = images.to(self.device)
-            labels = labels.float().to(self.device)
+            labels = labels.long().to(self.device)
             
             # Forward pass
             outputs = self.model(images)
-            loss = self.criterion(outputs.squeeze(), labels)
+            loss = self.criterion(outputs, labels)
             
             # Backward pass
             self.optimizer.zero_grad()
@@ -105,8 +105,8 @@ class Trainer:
             
             # Statistics
             running_loss += loss.item()
-            predictions = torch.sigmoid(outputs.squeeze()) > 0.5
-            correct += (predictions == labels.byte()).sum().item()
+            predictions = outputs.argmax(dim=1)
+            correct += (predictions == labels).sum().item()
             total += labels.size(0)
             
             # Update progress bar
@@ -132,16 +132,16 @@ class Trainer:
             
             for images, labels in pbar:
                 images = images.to(self.device)
-                labels = labels.float().to(self.device)
+                labels = labels.long().to(self.device)
                 
                 # Forward pass
                 outputs = self.model(images)
-                loss = self.criterion(outputs.squeeze(), labels)
+                loss = self.criterion(outputs, labels)
                 
                 # Statistics
                 running_loss += loss.item()
-                predictions = torch.sigmoid(outputs.squeeze()) > 0.5
-                correct += (predictions == labels.byte()).sum().item()
+                predictions = outputs.argmax(dim=1)
+                correct += (predictions == labels).sum().item()
                 total += labels.size(0)
                 
                 # Update progress bar

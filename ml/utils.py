@@ -15,7 +15,7 @@ import json
 from datetime import datetime
 import random
 import torch
-from config import Config
+from .config import Config  # Updated import
 
 # Set up logging
 def setup_logger(name, log_file=None, level=logging.INFO):
