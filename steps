@@ -1,0 +1,5 @@
+
+cd backend 
+.venv/Scripts/activate
+C:\Users\vaidehi koranne\OneDrive\Desktop\minorproject\minorproject\backend\veridex
+py manage.py runserver
