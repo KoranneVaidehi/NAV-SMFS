@@ -1,11 +1,13 @@
 cat > .gitignore << 'EOF'
 # Python
 __pycache__/
+*.pyc
 *.py[cod]
 *$py.class
 *.so
 .Python
 env/
+venv/
 .venv/
 ENV/
 build/
@@ -60,3 +62,7 @@ Thumbs.db
 # ML specific
 ml/__pycache__/
 EOF
+
+
+media/
+uploads/
