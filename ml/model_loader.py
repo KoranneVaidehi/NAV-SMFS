@@ -1,7 +1,6 @@
 """
 Model loader for NAV-SMFS.
 Loads the model once at startup and provides prediction functions.
-This ensures the model is not reloaded for every request.
 """
 
 import torch
@@ -9,18 +8,18 @@ from torchvision import transforms
 from PIL import Image
 from pathlib import Path
 import sys
+import cv2
+import numpy as np
 
-# Add parent directory to path for imports
 sys.path.append(str(Path(__file__).parent.parent))
 
-# Use relative imports
 from .config import Config
 from .model import create_model
 from .utils import setup_logger
+from .gradcam import generate_gradcam_for_face
+
 
 class ModelLoader:
-    """Singleton class to load and serve the model."""
-    
     _instance = None
     _model = None
     _device = None
@@ -29,24 +28,20 @@ class ModelLoader:
     _class_to_idx = None
     
     def __new__(cls):
-        """Singleton pattern to ensure only one instance."""
         if cls._instance is None:
             cls._instance = super(ModelLoader, cls).__new__(cls)
             cls._instance._initialize()
         return cls._instance
     
     def _initialize(self):
-        """Initialize the model, device, and transforms."""
         self.logger = setup_logger('model_loader')
         self.logger.info("=" * 60)
         self.logger.info("Initializing Model Loader...")
         self.logger.info("=" * 60)
         
-        # Set device
         self._device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.logger.info(f"Device: {self._device}")
         
-        # Load model
         model_path = Config.BEST_MODEL_PATH
         if not model_path.exists():
             raise FileNotFoundError(f"Model not found at {model_path}")
@@ -59,14 +54,12 @@ class ModelLoader:
         self._model = self._model.to(self._device)
         self._model.eval()
         
-        # Get class mapping from dataset
         self._class_to_idx = self._get_class_mapping()
         self._idx_to_class = {v: k for k, v in self._class_to_idx.items()}
         
         self.logger.info(f"Class mapping: {self._class_to_idx}")
         self.logger.info(f"Index to class: {self._idx_to_class}")
         
-        # Define preprocessing transforms
         self._transform = transforms.Compose([
             transforms.Resize((Config.IMG_SIZE, Config.IMG_SIZE)),
             transforms.ToTensor(),
@@ -77,15 +70,10 @@ class ModelLoader:
         self.logger.info("=" * 60)
     
     def _get_class_mapping(self):
-        """Get class mapping from dataset directory."""
         dataset_dir = Config.DATASET_DIR / 'train'
-        
         if not dataset_dir.exists():
-            self.logger.warning(f"Dataset directory not found: {dataset_dir}")
-            # Fallback to alphabetical order
             return {'fake': 0, 'real': 1}
         
-        # Get class folders and sort alphabetically
         class_folders = [d for d in dataset_dir.iterdir() if d.is_dir()]
         class_folders.sort()
         
@@ -97,24 +85,9 @@ class ModelLoader:
         return class_to_idx
     
     def predict_image(self, image_path):
-        """
-        Predict whether an image is real or AI-generated.
-        
-        Args:
-            image_path: Path to the image file
-            
-        Returns:
-            dict: {
-                "prediction": "Real" or "AI Generated",
-                "confidence": float,
-                "real_probability": float,
-                "fake_probability": float
-            }
-        """
         if self._model is None:
-            raise RuntimeError("Model not initialized. Call initialize() first.")
+            raise RuntimeError("Model not initialized.")
         
-        # Load and preprocess image
         try:
             image = Image.open(image_path).convert('RGB')
         except Exception as e:
@@ -127,33 +100,22 @@ class ModelLoader:
                 "error": str(e)
             }
         
-        # Preprocess
-        image_tensor = self._transform(image).unsqueeze(0)
-        image_tensor = image_tensor.to(self._device)
+        image_tensor = self._transform(image).unsqueeze(0).to(self._device)
         
-        # Predict
         with torch.no_grad():
             outputs = self._model(image_tensor)
-            
-            # Get probabilities using softmax
             probabilities = torch.softmax(outputs, dim=1)
-            
-            # Get prediction (class with highest probability)
             confidence, prediction = torch.max(probabilities, dim=1)
             
-            # Convert to Python values
             prediction_idx = prediction.item()
             confidence = confidence.item() * 100
             
-            # Get class name from index
             class_name = self._idx_to_class[prediction_idx]
             prediction_text = class_name.capitalize()
             
-            # Map to user-friendly labels
             if prediction_text.lower() == 'fake':
                 prediction_text = 'AI Generated'
             
-            # Get individual class probabilities
             real_prob = probabilities[0, self._class_to_idx['real']].item() * 100
             fake_prob = probabilities[0, self._class_to_idx['fake']].item() * 100
         
@@ -164,26 +126,47 @@ class ModelLoader:
             "fake_probability": fake_prob
         }
     
-    def get_model_info(self):
-        """Get model information."""
-        return {
-            "device": str(self._device),
-            "class_mapping": self._class_to_idx,
-            "num_classes": len(self._class_to_idx)
-        }
+    def generate_gradcam(self, face_image_path, target_class=None):
+        """Generate Grad-CAM for a face image."""
+        if self._model is None:
+            raise RuntimeError("Model not initialized.")
+        
+        print("\n🔥 ModelLoader.generate_gradcam()")
+        print(f"   Face path: {face_image_path}")
+        print(f"   Target class: {target_class}")
+        
+        result = generate_gradcam_for_face(
+            self._model,
+            face_image_path,
+            self._device,
+            target_class
+        )
+        
+        return result
+    
+    def generate_heatmap_overlay(self, face_image_path, output_path=None, target_class=None):
+        """Generate and save heatmap overlay for a face image."""
+        print("\n🔥 ModelLoader.generate_heatmap_overlay()")
+        print(f"   Face path: {face_image_path}")
+        print(f"   Output path: {output_path}")
+        print(f"   Target class: {target_class}")
+        
+        result = self.generate_gradcam(face_image_path, target_class)
+        
+        if result.get('success', False) and result.get('overlay') is not None and output_path:
+            output_path = Path(output_path)
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            overlay_bgr = cv2.cvtColor(result['overlay'], cv2.COLOR_RGB2BGR)
+            cv2.imwrite(str(output_path), overlay_bgr)
+            result['saved_path'] = str(output_path)
+            print(f"   ✅ Overlay saved: {output_path}")
+        elif output_path is None:
+            print(f"   ⚠️ No output_path provided")
+        
+        return result
 
-# Global instance for easy import
+
 model_loader = ModelLoader()
 
 def predict_image(image_path):
-    """
-    Convenience function to predict a single image.
-    Uses the globally loaded model.
-    
-    Args:
-        image_path: Path to the image file
-        
-    Returns:
-        dict: Prediction results
-    """
     return model_loader.predict_image(image_path)

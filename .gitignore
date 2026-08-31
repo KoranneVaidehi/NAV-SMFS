@@ -1,68 +1,80 @@
-cat > .gitignore << 'EOF'
+# =========================
 # Python
+# =========================
 __pycache__/
 *.pyc
-*.py[cod]
-*$py.class
+*.pyo
+*.pyd
 *.so
-.Python
-env/
-venv/
-.venv/
-ENV/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
 
-# PyTorch
+.venv/
+venv/
+env/
+ENV/
+
+*.egg-info/
+build/
+dist/
+
+# =========================
+# Django
+# =========================
+db.sqlite3
+media/
+uploads/
+
+# =========================
+# Environment / Secrets
+# =========================
+.env
+.env.*
+
+# =========================
+# ML Models
+# =========================
 *.pth
 *.pt
+*.h5
+*.keras
+*.onnx
 
-# Dataset (optional - if you want to ignore raw data)
+models/
+
+# =========================
+# Dataset
+# =========================
 dataset/
 raw_data/
-!dataset/README.md
 
+# =========================
 # Logs
-logs/
+# =========================
 *.log
+logs/
 
-# Plots
-plots/
-*.png
-*.jpg
-*.jpeg
+# =========================
+# Frontend
+# =========================
+frontend/node_modules/
+frontend/dist/
+frontend/build/
 
+# =========================
 # IDE
+# =========================
 .vscode/
 .idea/
 *.swp
 *.swo
 
+# =========================
 # OS
+# =========================
 .DS_Store
 Thumbs.db
 
+# =========================
 # Jupyter
+# =========================
 .ipynb_checkpoints/
-*.ipynb
-
-# ML specific
-ml/__pycache__/
-EOF
-
-
-media/
-uploads/
+*.ipynb_checkpoints
