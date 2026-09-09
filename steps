@@ -3,3 +3,8 @@ cd backend
 .venv/Scripts/activate
 D:\minorproject\backend\veridex
 py manage.py runserver
+
+
+cd fro
+cd nav  
+npm run dev
