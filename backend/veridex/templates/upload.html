@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Media{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card card-custom">
+            <div class="card-header text-center">
+                <h4><i class="fas fa-upload me-2"></i>Upload Media</h4>
+            </div>
+            <div class="card-body p-4">
+                <form method="POST" enctype="multipart/form-data" id="uploadForm" action="{% url 'upload_media' %}">
+                    {% csrf_token %}
+                    <div class="text-center mb-4">
+                        <div class="upload-area border-2 border-dashed rounded p-5" 
+                             style="border-color: #667eea; background: #f8f9fa; cursor: pointer;"
+                             onclick="document.getElementById('media_file').click()">
+                            <i class="fas fa-cloud-upload-alt fa-4x text-muted mb-3"></i>
+                            <h5>Click or Drag & Drop to Upload</h5>
+                            <p class="text-muted">Supports JPG, PNG, MP4, AVI and more</p>
+                            <input type="file" class="d-none" id="media_file" name="media_file" 
+                                   accept="image/*,video/*" required>
+                        </div>
+                        <div id="fileInfo" class="mt-2 text-muted"></div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary-custom w-100" id="uploadBtn">
+                        <i class="fas fa-upload me-2"></i>Upload & Analyze
+                    </button>
+                </form>
+
+                <div class="text-center mt-3">
+                    <a href="{% url 'dashboard' %}" class="text-decoration-none">
+                        <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Show selected file name
+    document.getElementById('media_file').addEventListener('change', function(e) {
+        const fileName = e.target.files[0]?.name || 'No file selected';
+        document.getElementById('fileInfo').textContent = 'Selected: ' + fileName;
+    });
+
+    // Drag and drop functionality
+    const uploadArea = document.querySelector('.upload-area');
+    uploadArea.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        this.style.borderColor = '#764ba2';
+        this.style.background = '#f0e6ff';
+    });
+    uploadArea.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        this.style.borderColor = '#667eea';
+        this.style.background = '#f8f9fa';
+    });
+    uploadArea.addEventListener('drop', function(e) {
+        e.preventDefault();
+        this.style.borderColor = '#667eea';
+        this.style.background = '#f8f9fa';
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            document.getElementById('media_file').files = files;
+            document.getElementById('fileInfo').textContent = 'Selected: ' + files[0].name;
+        }
+    });
+
+    // Form submission loading state
+    document.getElementById('uploadForm').addEventListener('submit', function() {
+        const btn = document.getElementById('uploadBtn');
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Analyzing...';
+        btn.disabled = true;
+    });
+</script>
+
+<style>
+    .border-dashed {
+        border-style: dashed !important;
+        border-width: 2px !important;
+    }
+    .upload-area:hover {
+        border-color: #764ba2 !important;
+        background: #f0e6ff !important;
+        transition: all 0.3s;
+    }
+</style>
+{% endblock %}

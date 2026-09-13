@@ -1,0 +1,244 @@
+{% extends "base.html" %}
+
+{% block title %}Analysis Result{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="card card-custom">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5><i class="fas fa-robot me-2"></i>Analysis Result</h5>
+                    <a href="{% url 'dashboard' %}" class="btn btn-light btn-sm">
+                        <i class="fas fa-arrow-left me-1"></i>Dashboard
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- File Info -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <p><strong><i class="fas fa-file me-2"></i>File:</strong> {{ media.file.name|cut:"uploads/" }}</p>
+                        <p><strong><i class="fas fa-calendar me-2"></i>Uploaded:</strong> {{ media.uploaded_at|date:"F d, Y H:i" }}</p>
+                        <p>
+                            <strong><i class="fas fa-tag me-2"></i>Type:</strong>
+                            <span class="badge bg-info">{{ media.media_type|upper }}</span>
+                        </p>
+                    </div>
+                    <div class="col-md-6 text-md-end">
+                        {% if faces_count is not None %}
+                        <p><strong><i class="fas fa-user me-2"></i>Faces Detected:</strong> 
+                            <span class="badge bg-primary">{{ faces_count }}</span>
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Image Display -->
+                <div class="text-center mb-4">
+                    <img src="{{ media.file.url }}" alt="Uploaded Image" class="img-fluid rounded border" style="max-height: 400px;">
+                </div>
+
+                <!-- AI Prediction Results -->
+                {% if is_image and prediction %}
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <h5 class="mb-3"><i class="fas fa-brain me-2"></i>AI Prediction Results</h5>
+                        
+                        <!-- Prediction Badge -->
+                        <div class="text-center mb-4">
+                            <span class="badge 
+                                {% if prediction == 'Real' %}bg-success
+                                {% elif prediction == 'AI Generated' %}bg-danger
+                                {% else %}bg-warning{% endif %}" 
+                                style="font-size: 1.2rem; padding: 10px 25px;">
+                                <i class="fas 
+                                    {% if prediction == 'Real' %}fa-check-circle
+                                    {% elif prediction == 'AI Generated' %}fa-exclamation-triangle
+                                    {% else %}fa-question-circle{% endif %} me-2">
+                                </i>
+                                {{ prediction }}
+                            </span>
+                        </div>
+
+                        <!-- Confidence Meter -->
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between">
+                                <span><strong>Confidence</strong></span>
+                                <span>{{ confidence|floatformat:1 }}%</span>
+                            </div>
+                            <div class="progress" style="height: 25px;">
+                                <div class="progress-bar 
+                                    {% if prediction == 'Real' %}bg-success
+                                    {% elif prediction == 'AI Generated' %}bg-danger
+                                    {% else %}bg-warning{% endif %}"
+                                    style="width: {{ confidence }}%; transition: width 1s ease;">
+                                    {{ confidence|floatformat:1 }}%
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Probability Boxes -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="p-3 rounded bg-success bg-opacity-10 border border-success">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <small class="text-muted"><i class="fas fa-user-check me-1"></i>Real</small>
+                                            <h4 class="text-success">{{ real_probability|floatformat:1 }}%</h4>
+                                        </div>
+                                        <i class="fas fa-check-circle text-success" style="font-size: 2rem;"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="p-3 rounded bg-danger bg-opacity-10 border border-danger">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <small class="text-muted"><i class="fas fa-user-slash me-1"></i>AI Generated</small>
+                                            <h4 class="text-danger">{{ fake_probability|floatformat:1 }}%</h4>
+                                        </div>
+                                        <i class="fas fa-exclamation-triangle text-danger" style="font-size: 2rem;"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- === NEW: AI Detection Heatmap Section === -->
+                {% if is_image and prediction and heatmap_overlay_path %}
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <h5 class="mb-3"><i class="fas fa-fire me-2"></i>AI Detection Heatmap</h5>
+                        <p class="text-muted small">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Highlighted regions indicate areas that contributed most to the EfficientNet-B0 prediction.
+                            This heatmap is an explainability visualization and does not represent pixel-level proof of manipulation.
+                        </p>
+                        
+                        <div class="row g-3">
+                            <!-- Original Image -->
+                            <div class="col-md-6">
+                                <div class="card h-100">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-title">Original Image</h6>
+                                        <img src="{{ media.file.url }}" alt="Original" class="img-fluid rounded" style="max-height: 300px;">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Heatmap Overlay -->
+                            <div class="col-md-6">
+                                <div class="card h-100">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-title">AI Heatmap Overlay</h6>
+                                        <img src="{{ heatmap_overlay_path }}" alt="Heatmap" class="img-fluid rounded" style="max-height: 300px;">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Heatmap Legend -->
+                        <div class="mt-3 p-3 bg-light rounded">
+                            <div class="d-flex flex-wrap justify-content-center gap-3">
+                                <div><span style="display:inline-block;width:20px;height:20px;background:#0000FF;border-radius:4px;"></span> Blue - Low contribution</div>
+                                <div><span style="display:inline-block;width:20px;height:20px;background:#00FF00;border-radius:4px;"></span> Green - Moderate contribution</div>
+                                <div><span style="display:inline-block;width:20px;height:20px;background:#FFFF00;border-radius:4px;"></span> Yellow - High contribution</div>
+                                <div><span style="display:inline-block;width:20px;height:20px;background:#FF0000;border-radius:4px;"></span> Red - Strongest contribution</div>
+                            </div>
+                            <div class="text-center mt-2">
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    The heatmap shows which facial regions influenced the model's 
+                                    <strong>{{ prediction }}</strong> prediction.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% elif is_image and prediction and not heatmap_overlay_path %}
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Heatmap Unavailable:</strong> 
+                            Grad-CAM visualization could not be generated for this image. This may happen if no face was detected or if there was an error during heatmap generation.
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- No AI Prediction for Videos -->
+                {% if is_video %}
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="alert alert-info">
+                            <i class="fas fa-video me-2"></i>
+                            <strong>Video Processing:</strong> Face detection completed. AI prediction and heatmap are only available for images.
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Detected Faces -->
+                <div class="row">
+                    <div class="col-12">
+                        <h5 class="mb-3"><i class="fas fa-users me-2"></i>Detected Faces</h5>
+                        {% if faces %}
+                            <div class="row g-3">
+                                {% for face in faces %}
+                                <div class="col-auto">
+                                    <div class="card p-2" style="width: 100px;">
+                                        {% if face.face_image %}
+                                        <img src="data:image/jpeg;base64,{{ face.face_image }}" 
+                                             class="card-img-top" alt="Face {{ forloop.counter }}">
+                                        {% endif %}
+                                        <div class="text-center small text-muted">Face #{{ forloop.counter }}</div>
+                                        {% if face.heatmap_path %}
+                                        <div class="text-center mt-1">
+                                            <span class="badge bg-info" title="Heatmap available">🔥</span>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="text-center py-4 bg-light rounded">
+                                <i class="fas fa-user-slash fa-2x text-muted mb-2"></i>
+                                <p class="text-muted mb-0">No faces detected in this image/video</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="text-center mt-4">
+                    <a href="{% url 'dashboard' %}" class="btn btn-primary-custom">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                    </a>
+                    <a href="{% url 'upload_media' %}" class="btn btn-outline-custom ms-2">
+                        <i class="fas fa-upload me-2"></i>Upload Another
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Animate progress bar on load
+    document.addEventListener('DOMContentLoaded', function() {
+        const bars = document.querySelectorAll('.progress-bar');
+        bars.forEach(bar => {
+            const width = bar.style.width;
+            bar.style.width = '0%';
+            setTimeout(() => {
+                bar.style.width = width;
+            }, 300);
+        });
+    });
+</script>
+{% endblock %}
