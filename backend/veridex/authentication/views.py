@@ -86,7 +86,10 @@ except ImportError as e:
 
     detector = None
 
-
+    
+from django.shortcuts import render
+def react_frontend(request):
+    return render(request, "react/index.html")
 # ============================================================
 # STATIC HEATMAP GENERATOR
 # ============================================================
