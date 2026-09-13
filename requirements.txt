@@ -12,6 +12,9 @@ matplotlib
 seaborn
 tqdm
 
+gunicorn
+django-cors-headers
+whitenoise
 #pip install -r requirements.txt
 #activate the venv :   .\.venv\Scripts\Activate
 #run python manage.py runserver
