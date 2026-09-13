@@ -50,7 +50,8 @@ TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [
-            BASE_DIR / 'templates',  # backend/veridex/templates/
+            BASE_DIR / 'templates',
+            BASE_DIR / 'static',
         ],
         'APP_DIRS': False,  # Disable app_dir templates
         'OPTIONS': {
@@ -125,3 +126,5 @@ CORS_ALLOWED_ORIGINS = [
 
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = False
+
+
