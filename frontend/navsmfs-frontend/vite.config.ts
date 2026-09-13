@@ -7,7 +7,7 @@ export default defineConfig({
   base: '/static/react/',
 
   build: {
-    outDir: '../../../backend/veridex/static/react',
+    outDir: '../../backend/veridex/static/react',
     emptyOutDir: true,
   },
 })
